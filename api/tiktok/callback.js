@@ -12,9 +12,11 @@ export async function GET(request) {
 
     const c = parseCookies(request);
     const parts = state.split(".");
-    if (!c.flowbot_session || !c.flowbot_oauth_nonce || parts.length !== 3) return json({ error: "OAuth session missing" }, 400);
+    const oauthParts = (c.flowbot_oauth || "").split(".");
+    if (parts.length !== 3 || oauthParts.length !== 2) return json({ error: "OAuth session missing" }, 400);
+
     const expected = hmac(parts[0] + "." + parts[1]);
-    if (!safeEqual(c.flowbot_session, parts[0]) || !safeEqual(c.flowbot_oauth_nonce, parts[1]) || !safeEqual(parts[2], expected)) {
+    if (!safeEqual(oauthParts[0], parts[0]) || !safeEqual(oauthParts[1], parts[1]) || !safeEqual(parts[2], expected)) {
       return json({ error: "Invalid OAuth state" }, 400);
     }
 
@@ -38,9 +40,10 @@ export async function GET(request) {
     const profile = await profileRes.json();
     if (!profileRes.ok || !profile?.data?.user) return json({ error:"TikTok profile lookup failed", details:profile }, 502);
 
+    const session = parts[0];
     const now = Date.now();
     await db.upsert({
-      session_id:c.flowbot_session,
+      session_id:session,
       open_id:tokens.open_id,
       display_name:profile.data.user.display_name || null,
       avatar_url:profile.data.user.avatar_url || null,
@@ -54,12 +57,12 @@ export async function GET(request) {
     const handoff = randomToken(32);
     await db.handoff({
       code_hash:sha256(handoff),
-      session_id:c.flowbot_session,
+      session_id:session,
       expires_at:new Date(Date.now() + 300000).toISOString()
     });
 
     return redirect(env("SITE_URL") + "/?tiktok=connected&code=" + encodeURIComponent(handoff), {
-      "Set-Cookie": clearCookie("flowbot_oauth_nonce") + ", " + cookie("flowbot_session", c.flowbot_session, 2592000)
+      "Set-Cookie": cookie("flowbot_session", session, 2592000)
     });
   } catch (e) {
     return json({ error:e.message }, 500);
