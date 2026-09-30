@@ -12,8 +12,9 @@ export function GET(request) {
     url.searchParams.set("scope", "user.info.basic");
     url.searchParams.set("redirect_uri", env("TIKTOK_REDIRECT_URI"));
     url.searchParams.set("state", state);
+
     return redirect(url.toString(), {
-      "Set-Cookie": cookie("flowbot_session", session, 2592000) + ", " + cookie("flowbot_oauth_nonce", nonce, 600)
+      "Set-Cookie": cookie("flowbot_oauth", session + "." + nonce, 600)
     });
   } catch (e) {
     return json({ error: e.message }, 500);
