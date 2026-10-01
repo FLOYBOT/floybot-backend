@@ -23,7 +23,7 @@ export default async function handler(req,res){
   try{
     const api=await fetch("https://api.openai.com/v1/responses",{
       method:"POST",
-      headers:{"Content-Type":"application/json","Authorization:"Bearer "+key},
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},
       body:JSON.stringify({model:process.env.OPENAI_SUPPORT_MODEL||"gpt-6-luna",input,max_output_tokens:500})
     });
     const data=await api.json();
