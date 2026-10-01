@@ -21,13 +21,18 @@ export default async function handler(req,res){
   ];
 
   try{
+    const model=process.env.OPENAI_SUPPORT_MODEL||"gpt-6-luna";
     const api=await fetch("https://api.openai.com/v1/responses",{
       method:"POST",
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},
-      body:JSON.stringify({model:process.env.OPENAI_SUPPORT_MODEL||"gpt-6-luna",input,max_output_tokens:500})
+      body:JSON.stringify({model,input,max_output_tokens:500})
     });
     const data=await api.json();
-    if(!api.ok) return res.status(502).json({error:"AI provider error"});
+    if(!api.ok){
+      const providerCode=data?.error?.code||data?.error?.type||"unknown";
+      console.error("OpenAI support error",{status:api.status,code:providerCode,message:data?.error?.message||"unknown",model});
+      return res.status(502).json({error:"AI provider error",code:providerCode,status:api.status});
+    }
     const answer=data.output_text||data.output?.flatMap(x=>x.content||[]).find(x=>x.type==="output_text")?.text;
     if(!answer) return res.status(502).json({error:"Empty AI response"});
     return res.status(200).json({answer});
