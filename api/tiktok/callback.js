@@ -66,7 +66,7 @@ export async function GET(request) {
       expires_at:new Date(Date.now() + 300000).toISOString()
     });
 
-    return redirect(env("SITE_URL") + "/?tiktok=connected&code=" + encodeURIComponent(handoff), {
+    return redirect(env("SITE_URL") + "/#bot?tiktok=connected&code=" + encodeURIComponent(handoff), {
       "Set-Cookie": cookie("flowbot_session", session, 2592000)
     });
   } catch (e) {
