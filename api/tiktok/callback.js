@@ -2,6 +2,7 @@ import { db } from "../../lib/supabase.js";
 import { env, randomToken, sha256, encrypt, parseCookies, safeEqual, clearCookie, cookie, hmac, redirect, json } from "../../lib/security.js";
 
 export async function GET(request) {
+  let stage = "start";
   try {
     const u = new URL(request.url);
     const code = u.searchParams.get("code");
@@ -20,6 +21,7 @@ export async function GET(request) {
       return json({ error: "Invalid OAuth state" }, 400);
     }
 
+    stage = "tiktok_token_exchange";
     const tokenRes = await fetch("https://open.tiktokapis.com/v2/oauth/token/", {
       method:"POST",
       headers:{"Content-Type":"application/x-www-form-urlencoded"},
@@ -34,6 +36,7 @@ export async function GET(request) {
     const tokens = await tokenRes.json();
     if (!tokenRes.ok || !tokens.access_token || !tokens.open_id) return json({ error:"TikTok token exchange failed", details:tokens }, 502);
 
+    stage = "tiktok_profile_lookup";
     const profileRes = await fetch("https://open.tiktokapis.com/v2/user/info/?fields=open_id,avatar_url,display_name", {
       headers:{Authorization:"Bearer " + tokens.access_token}
     });
@@ -42,6 +45,7 @@ export async function GET(request) {
 
     const session = parts[0];
     const now = Date.now();
+    stage = "supabase_account_upsert";
     await db.upsert({
       session_id:session,
       open_id:tokens.open_id,
@@ -55,6 +59,7 @@ export async function GET(request) {
     });
 
     const handoff = randomToken(32);
+    stage = "supabase_handoff";
     await db.handoff({
       code_hash:sha256(handoff),
       session_id:session,
@@ -65,6 +70,15 @@ export async function GET(request) {
       "Set-Cookie": cookie("flowbot_session", session, 2592000)
     });
   } catch (e) {
-    return json({ error:e.message }, 500);
+    console.error("TikTok callback failed", {
+      stage,
+      message: e?.message || String(e),
+      cause: e?.cause?.message || null
+    });
+    return json({
+      error: "TikTok callback failed",
+      stage,
+      details: e?.cause?.message || e?.message || String(e)
+    }, 500);
   }
 }
