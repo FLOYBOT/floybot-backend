@@ -59,6 +59,12 @@ export async function GET(request) {
           likes: Number(user.likes_count || 0),
           videos: Number(user.video_count || 0)
         } : null,
+        token: {
+          access_expires_at: account.access_token_expires_at || null,
+          refresh_expires_at: secret.refresh_token_expires_at || null
+        },
+        data_source: "TikTok Display API /v2/user/info/",
+        checked_at: new Date().toISOString(),
         limitations: [
           ...(scopes.includes("user.info.stats") ? [] : ["Для статистики нужен одобренный scope user.info.stats."]),
           ...(scopes.includes("user.info.profile") ? [] : ["Для bio/ссылки/верификации нужен одобренный scope user.info.profile."]),
