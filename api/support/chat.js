@@ -4,7 +4,7 @@ export default async function handler(req,res){
   res.setHeader("Access-Control-Max-Age","86400");
   res.setHeader("Access-Control-Allow-Methods","POST,OPTIONS");
   if(req.method==="OPTIONS") return res.status(204).end();
-  if(req.method==="GET") return res.status(200).json({ok:true});
+  if(req.method==="GET") return res.status(200).json({ok:true,service:"FLOWBOT AI support"});
   if(req.method!=="POST") return res.status(405).json({error:"Method not allowed"});
 
   const key=process.env.OPENAI_API_KEY;
