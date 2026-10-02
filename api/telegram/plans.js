@@ -3,5 +3,5 @@ export default function handler(req,res){
  res.setHeader("Access-Control-Allow-Origin","https://floybot.github.io");
  res.setHeader("Cache-Control","public, max-age=60");
  if(req.method!=="GET")return res.status(405).json({ok:false});
- return res.status(200).json({ok:true,plans:PLANS.map(([code,label,env,recurring])=>({code,label,stars:Number(process.env[env]||0),recurring}))});
+ return res.status(200).json({ok:true,bot_username:process.env.TG_BOT_USERNAME||"",plans:PLANS.map(([code,label,env,recurring])=>({code,label,stars:Number(process.env[env]||0),recurring}))});
 }
