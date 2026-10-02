@@ -1,14 +1,21 @@
 export default async function handler(req,res){
-  res.setHeader("Access-Control-Allow-Origin","https://floybot.github.io");
-  res.setHeader("Access-Control-Allow-Headers","Content-Type");
+  res.setHeader("Access-Control-Allow-Origin","*");
+  res.setHeader("Access-Control-Allow-Headers","Content-Type, Authorization");
+  res.setHeader("Access-Control-Max-Age","86400");
   res.setHeader("Access-Control-Allow-Methods","POST,OPTIONS");
   if(req.method==="OPTIONS") return res.status(204).end();
+  if(req.method==="GET") return res.status(200).json({ok:true});
   if(req.method!=="POST") return res.status(405).json({error:"Method not allowed"});
 
   const key=process.env.OPENAI_API_KEY;
   if(!key) return res.status(503).json({error:"AI support is not configured yet"});
 
-  const body=typeof req.body==="string"?JSON.parse(req.body||"{}"):(req.body||{});
+  let body={};
+  try{
+    body=typeof req.body==="string"?JSON.parse(req.body||"{}"):(req.body||{});
+  }catch(e){
+    return res.status(400).json({error:"Invalid JSON"});
+  }
   const message=typeof body.message==="string"?body.message.trim():"";
   const history=Array.isArray(body.history)?body.history.slice(-10):[];
   if(!message) return res.status(400).json({error:"Message is required"});
@@ -37,6 +44,7 @@ export default async function handler(req,res){
     if(!answer) return res.status(502).json({error:"Empty AI response"});
     return res.status(200).json({answer});
   }catch(e){
+    console.error("Support handler error",e?.message||e);
     return res.status(500).json({error:"Support temporarily unavailable"});
   }
 }
